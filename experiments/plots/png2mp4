@@ -1,0 +1,2 @@
+#!/bin/bash
+ffmpeg -framerate 24 -i test_epoch00%02d.png -r 15 out.mp4
