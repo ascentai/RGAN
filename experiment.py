@@ -1,19 +1,15 @@
+import json
+from time import time
+
 import numpy as np
 import tensorflow as tf
-import pdb
-import random
-import json
 from scipy.stats import mode
 
 import data_utils
-import plotting
 import model
+import plotting
 import utils
-import eval
-
-from time import time
-from math import floor
-from mmd import rbf_mmd2, median_pairwise_distance, mix_rbf_mmd2_and_ratio
+from mmd import median_pairwise_distance, mix_rbf_mmd2_and_ratio
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
@@ -32,7 +28,36 @@ print('Ready to run with settings:')
 for (k, v) in settings.items(): print(v, '\t',  k)
 # add the settings to local environment
 # WARNING: at this point a lot of variables appear
-locals().update(settings)
+# locals().update(settings)
+data = settings['data']
+identifier = settings['identifier']  # type: str
+batch_size = settings['batch_size']  # type: int
+seq_length = settings['seq_length']  # type: int
+latent_dim = settings['latent_dim']  # type: int
+num_signals = settings['num_signals']  # type: int
+cond_dim = settings['cond_dim']  # type: int
+predict_labels = settings['predict_labels']  # type: bool
+kappa = settings['kappa']  # type: int
+wrong_labels = settings['wrong_labels']  # type: bool
+learning_rate = settings['learning_rate']  # type: float
+l2norm_bound = settings['l2norm_bound']  # type: float
+batches_per_lot = settings['batches_per_lot']  # type: int
+# differential privacy
+dp_sigma = settings['dp_sigma']  # type: float
+dp = settings['dp']  # type: bool
+
+num_samples = settings['num_samples']  # type: int
+num_generated_features = settings['num_generated_features']  # type: int
+
+use_time = settings['use_time']  # type: bool
+max_val = settings['max_val']  # type: int
+one_hot = settings['one_hot']  # type: bool
+multivariate_mnist = settings['multivariate_mnist']  # type: bool
+resample_rate_in_min = settings['resample_rate_in_min']  # type: int
+
+num_epochs = settings['num_epochs']  # type: int
+shuffle = settings['shuffle']  # type: bool
+
 json.dump(settings, open('./experiments/settings/' + identifier + '.txt', 'w'), indent=0)
 
 if not data == 'load':
@@ -93,7 +118,7 @@ sess.run(tf.global_variables_initializer())
 
 vis_Z = model.sample_Z(batch_size, seq_length, latent_dim, use_time)
 if CGAN:
-    vis_C = model.sample_C(batch_size, cond_dim, max_val, one_hot)
+    vis_C = model.sample_C(batch_size, cond_dim, max_val, one_hot)  # type: np.ndarray
     if 'mnist' in data:
         if one_hot:
             if cond_dim == 6:
@@ -180,9 +205,9 @@ for epoch in range(num_epochs):
             vis_sample = sess.run(G_sample, feed_dict={Z: vis_Z, CG: vis_C})
         else:
             vis_sample = sess.run(G_sample, feed_dict={Z: vis_Z})
-        plotting.visualise_at_epoch(vis_sample, data, 
-                predict_labels, one_hot, epoch, identifier, num_epochs,
-                resample_rate_in_min, multivariate_mnist, seq_length, labels=vis_C)
+        plotting.visualise_at_epoch(vis_sample, data,
+                                    predict_labels, one_hot, epoch, identifier, num_epochs,
+                                    resample_rate_in_min, multivariate_mnist, seq_length, labels=vis_C)
    
     # compute mmd2 and, if available, prob density
     if epoch % eval_freq == 0:
